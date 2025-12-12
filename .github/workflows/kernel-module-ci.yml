@@ -1,0 +1,80 @@
+name: Kernel Module CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ---------------------------
+      # 0. Checkout repository
+      # ---------------------------
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      # ---------------------------
+      # 1. Install dependencies
+      # ---------------------------
+      - name: Install tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      # ---------------------------
+      # 2. Build Docker image
+      # ---------------------------
+      - name: Build kernel lab Docker image
+        run: |
+          docker build -t kernel-lab .
+
+      # ---------------------------
+      # 3. Run QEMU inside container
+      # ---------------------------
+      - name: Run kernel tests in QEMU
+        run: |
+          # Запускаем и логируем всё в файл
+          docker run --privileged --rm kernel-lab | tee qemu_output.txt
+
+      # ---------------------------
+      # 4. Extract JSON from QEMU output
+      # ---------------------------
+      - name: Extract JSON and validate
+        run: |
+          echo "=== RAW QEMU OUTPUT ==="
+          cat qemu_output.txt
+
+          # Достаём JSON из последней строки
+          JSON=$(grep -o '{.*}' qemu_output.txt | tail -n 1)
+
+          if [ -z "$JSON" ]; then
+            echo "❌ JSON not found in QEMU output"
+            exit 1
+          fi
+
+          echo "$JSON" > result.json
+
+          echo "=== PARSED JSON ==="
+          cat result.json | jq .
+
+          INS_EXIT=$(jq '.insmod_exit' result.json)
+          HELLO=$(jq '.hello_found' result.json)
+          INS_ERR=$(jq -r '.insmod_err' result.json)
+
+          # -------- CHECK 1: insmod return code --------
+          if [ "$INS_EXIT" -ne 0 ]; then
+            echo "❌ insmod failed with exit code $INS_EXIT"
+            echo "Error output: $INS_ERR"
+            exit 1
+          fi
+
+          # -------- CHECK 2: Was 'hello' printed? --------
+          if [ "$HELLO" != "true" ]; then
+            echo "❌ Module loaded but did NOT print hello"
+            exit 1
+          fi
+
+          echo "✅ MODULE TEST PASSED SUCCESSFULLY"
