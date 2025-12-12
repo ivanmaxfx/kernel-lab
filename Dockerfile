@@ -61,16 +61,15 @@ mount -t sysfs sysfs /sys\n\
 echo "INIT STARTED"\n\
 insmod /lib/modules/*.ko 2>/insmod.err\n\
 dmesg > /dmesg.log\n\
-echo "--- insmod.err ---"\n\
-cat /insmod.err\n\
-echo "-------------------"\n\
+echo "===RESULT==="\n\
 if grep -q "hello" /dmesg.log; then\n\
-    echo "MODULE LOAD OK"\n\
-    poweroff -f\n\
+  echo "{\\"status\\":\\"ok\\",\\"message\\":\\"MODULE LOAD OK\\"}"\n\
 else\n\
-    echo "MODULE LOAD FAILED"\n\
-    poweroff -f\n\
-fi\n' > /workspace/initramfs/init
+  ERR=$(cat /insmod.err | sed "s/\"/'/g")\n\
+  echo "{\\"status\\":\\"error\\",\\"message\\":\\"MODULE LOAD FAILED\\",\\"insmod_err\\":\\"${ERR}\\"}"\n\
+fi\n\
+echo "===END===\n"\n\
+poweroff -f\n' > /workspace/initramfs/init
 
 RUN chmod +x /workspace/initramfs/init
 
