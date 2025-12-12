@@ -55,21 +55,30 @@ RUN mknod -m 666 /workspace/initramfs/dev/null c 1 3 || true
 # -------------------------------
 # Create /init script
 # -------------------------------
-RUN printf '#!/bin/sh\n\
-mount -t proc proc /proc\n\
-mount -t sysfs sysfs /sys\n\
-echo "INIT STARTED"\n\
-insmod /lib/modules/*.ko 2>/insmod.err\n\
-dmesg > /dmesg.log\n\
-echo "===RESULT==="\n\
-if grep -q "hello" /dmesg.log; then\n\
-  echo "{\\"status\\":\\"ok\\",\\"message\\":\\"MODULE LOAD OK\\"}"\n\
-else\n\
-  ERR=$(cat /insmod.err | sed "s/\"/'/g")\n\
-  echo "{\\"status\\":\\"error\\",\\"message\\":\\"MODULE LOAD FAILED\\",\\"insmod_err\\":\\"${ERR}\\"}"\n\
-fi\n\
-echo "===END===\n"\n\
-poweroff -f\n' > /workspace/initramfs/init
+RUN cat << 'EOF' > /workspace/initramfs/init
+#!/bin/sh
+
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+echo "INIT STARTED"
+
+insmod /lib/modules/*.ko 2>/insmod.err
+dmesg > /dmesg.log
+
+echo "===RESULT==="
+
+if grep -q "hello" /dmesg.log; then
+    echo "{\"status\":\"ok\",\"message\":\"MODULE LOAD OK\"}"
+else
+    ERR=$(cat /insmod.err | sed "s/\"/'/g")
+    echo "{\"status\":\"error\",\"message\":\"MODULE LOAD FAILED\",\"insmod_err\":\"${ERR}\"}"
+fi
+
+echo "===END==="
+
+poweroff -f
+EOF
+
 
 RUN chmod +x /workspace/initramfs/init
 
