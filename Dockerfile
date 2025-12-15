@@ -62,6 +62,7 @@ mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 echo "INIT STARTED"
 
+
 insmod /lib/modules/*.ko 2>/insmod.err
 dmesg > /dmesg.log
 
