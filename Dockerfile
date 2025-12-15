@@ -55,7 +55,7 @@ RUN mknod -m 666 /workspace/initramfs/dev/null c 1 3 || true
 # -------------------------------
 # Create /init script
 # -------------------------------
-RUN cat << 'EOF' > /workspace/initramfs/init
+RUN cat << "EOF" > /workspace/initramfs/init
 #!/bin/sh
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
