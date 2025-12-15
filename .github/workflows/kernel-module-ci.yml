@@ -44,7 +44,7 @@ jobs:
       # ---------------------------
       - name: Extract JSON and validate
         run: |
-          RAW_OUTPUT="$(cat qemu.log)"
+          RAW_OUTPUT="$(cat qemu_output.txt)"
 
           echo "=== RAW OUTPUT ==="
           echo "$RAW_OUTPUT"
