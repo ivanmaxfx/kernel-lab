@@ -9,7 +9,7 @@ MODULE_VERSION("1.0");
 
 static int __init hello_init(void)
 {
-    printk(KERN_INFO "Hello from kernel module!\n");
+    pri ntk(KERN_INFO "Hello from kernel module!\n");
     return 0;
 }
 
