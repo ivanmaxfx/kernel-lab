@@ -44,37 +44,27 @@ jobs:
       # ---------------------------
       - name: Extract JSON and validate
         run: |
-          echo "=== RAW QEMU OUTPUT ==="
-          cat qemu_output.txt
+          RAW_OUTPUT="$(cat qemu.log)"
 
-          # Достаём JSON из последней строки
-          JSON=$(grep -o '{.*}' qemu_output.txt | tail -n 1)
+          echo "=== RAW OUTPUT ==="
+          echo "$RAW_OUTPUT"
 
-          if [ -z "$JSON" ]; then
-            echo "❌ JSON not found in QEMU output"
-            exit 1
-          fi
-
-          echo "$JSON" > result.json
+          JSON=$(echo "$RAW_OUTPUT" | sed -n '/===RESULT===/{n;/===END===/q;p;}')
 
           echo "=== PARSED JSON ==="
-          cat result.json | jq .
+          echo "$JSON"
 
-          INS_EXIT=$(jq '.insmod_exit' result.json)
-          HELLO=$(jq '.hello_found' result.json)
-          INS_ERR=$(jq -r '.insmod_err' result.json)
+          STATUS=$(echo "$JSON" | jq -r '.status')
 
-          # -------- CHECK 1: insmod return code --------
-          if [ "$INS_EXIT" -ne 0 ]; then
-            echo "❌ insmod failed with exit code $INS_EXIT"
-            echo "Error output: $INS_ERR"
-            exit 1
+          if [[ "$STATUS" != "ok" ]]; then
+              echo "❌ Module failed to load"
+              exit 1
           fi
 
-          # -------- CHECK 2: Was 'hello' printed? --------
-          if [ "$HELLO" != "true" ]; then
-            echo "❌ Module loaded but did NOT print hello"
-            exit 1
+          # Проверка hello НЕ через JSON!!
+          if ! echo "$RAW_OUTPUT" | grep -q "Hello from kernel module"; then
+              echo "❌ Module loaded but did NOT print hello"
+              exit 1
           fi
 
-          echo "✅ MODULE TEST PASSED SUCCESSFULLY"
+          echo "✅ Module printed hello and loaded OK"
