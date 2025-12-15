@@ -55,30 +55,26 @@ RUN mknod -m 666 /workspace/initramfs/dev/null c 1 3 || true
 # -------------------------------
 # Create /init script
 # -------------------------------
-RUN cat << 'EOF' > /workspace/initramfs/init
-#!/bin/sh
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
-echo "INIT STARTED"
-
-insmod /lib/modules/*.ko 2>/insmod.err
-dmesg > /dmesg.log
-
-echo "===RESULT==="
-
-# check dmesg
-if grep -q "hello" /dmesg.log; then
-    echo "{\"status\":\"ok\",\"message\":\"MODULE LOAD OK\"}"
-else
-    # Replace double-quotes with single quotes safely
-    ERR=$(tr '"' "'" < /insmod.err)
-    echo "{\"status\":\"error\",\"message\":\"MODULE LOAD FAILED\",\"insmod_err\":\"${ERR}\"}"
-fi
-
-echo "===END==="
-
-poweroff -f
-EOF
+RUN printf '%s\n' \
+"#!/bin/sh" \
+"mount -t proc proc /proc" \
+"mount -t sysfs sysfs /sys" \
+"echo \"INIT STARTED\"" \
+"" \
+"insmod /lib/modules/*.ko 2>/insmod.err" \
+"dmesg > /dmesg.log" \
+"" \
+"echo \"===RESULT===\"" \
+"if grep -q \"hello\" /dmesg.log; then" \
+"    echo '{\"status\":\"ok\",\"message\":\"MODULE LOAD OK\"}'" \
+"else" \
+"    ERR=\$(tr '\"' \"'\" < /insmod.err)" \
+"    echo '{\"status\":\"error\",\"message\":\"MODULE LOAD FAILED\",\"insmod_err\":\"'\"\${ERR}\"'\"}'" \
+"fi" \
+"echo \"===END===\"" \
+"" \
+"poweroff -f" \
+> /workspace/initramfs/init
 
 
 RUN chmod +x /workspace/initramfs/init
